@@ -17,7 +17,7 @@ import config
 
 from convnext import convnext_tiny
 
-
+print("toto")
 model = convnext_tiny(pretrained=False, strict=False, drop_path_rate=0., after_stem_dim=[252, 56], use_speed_perturb=False)
 
 
