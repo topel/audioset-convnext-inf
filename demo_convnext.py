@@ -56,11 +56,12 @@ print("logits", logits.size())
 
 probs = torch.sigmoid(logits)
 
-# send probs to CPU. 
-logits = torch.squeeze(probs).cpu()
+print(probs)
 
-sample_labels = np.where(probs[0].clone().detach().cpu() > 0.00001)[0]
-print(audio_name + "\n\n")
-print(sample_labels)
+
+threshold=0.1
+sample_labels = np.where(probs[0].clone().detach().cpu() > threshold)[0]
+print("\n\n" + audio_name + "\n\n")
+print("predictions:\n\n" + sample_labels)
 
 
