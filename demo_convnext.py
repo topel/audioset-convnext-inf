@@ -62,6 +62,7 @@ print(probs)
 threshold=0.1
 sample_labels = np.where(probs[0].clone().detach().cpu() > threshold)[0]
 print("\n\n" + audio_name + "\n\n")
-print("predictions:\n\n" + sample_labels)
+print("predictions:\n\n")
+print(sample_labels)
 
 
