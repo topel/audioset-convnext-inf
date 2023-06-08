@@ -2,6 +2,6 @@
 Adapting a ConvNeXt model to audio classification on AudioSet
 
 
-Coming soon!
+In construction...
 
 
