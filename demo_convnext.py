@@ -28,7 +28,7 @@ def load_from_pretrain(model, pretrained_checkpoint_path):
     checkpoint = torch.load(pretrained_checkpoint_path)
     model.load_state_dict(checkpoint['model'])
 
-tiny_path = 'checkpoints/convnext_tiny_471mAP.pth'
+tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth'
 load_from_pretrain(model, tiny_path)
 
 if torch.cuda.is_available():
@@ -41,7 +41,7 @@ if 'cuda' in str(device):
 sample_rate=32000
 audio_target_length = 10*sample_rate # 10 s
 
-fpath = 'audio_sampleseval_VZHuBw-BhDg_50000_60000.wav'
+fpath = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/audio_samples/f62-S-v2swA_200000_210000.wav'
 (waveform, _) = librosa.core.load(fpath, sr=sample_rate, mono=True)
 # print(waveform.shape)
 # waveform = pad_audio(waveform, audio_target_length)
