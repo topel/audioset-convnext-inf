@@ -10,7 +10,7 @@
 #SBATCH --error=./sbatch_log.err
 #SBATCH --time=00:05:00
 #SBATCH --cpus-per-task=10
-#SBATCH --account=djl@v100
+#SBATCH --account=owj@v100
 ####SBATCH --account=vby@v100
 #SBATCH --hint=nomultithread
 
