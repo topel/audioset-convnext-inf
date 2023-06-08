@@ -59,7 +59,7 @@ probs = torch.sigmoid(logits)
 print(probs)
 
 
-threshold=0.1
+threshold=0.25
 sample_labels = np.where(probs[0].clone().detach().cpu() > threshold)[0]
 print("\n\n" + audio_name + "\n\n")
 print("predictions:\n\n")
