@@ -2,18 +2,13 @@ import os
 import sys
 sys.path.insert(1, os.path.join(sys.path[0], 'utils'))
 sys.path.insert(1, os.path.join(sys.path[0], 'pytorch'))
-# import numpy as np
-# import argparse
+import config
+
 import librosa
 # import matplotlib.pyplot as plt
 import torch
 
-import glob
-import pickle
-import h5py
-
-from utilities import create_folder, get_filename, pad_or_truncate, pad_audio
-import config
+import numpy as np
 
 from convnext import convnext_tiny
 
@@ -41,7 +36,8 @@ if 'cuda' in str(device):
 sample_rate=32000
 audio_target_length = 10*sample_rate # 10 s
 
-fpath = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/audio_samples/f62-S-v2swA_200000_210000.wav'
+audio_name='f62-S-v2swA_200000_210000.wav'
+fpath = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/audio_samples/' + audio_name
 (waveform, _) = librosa.core.load(fpath, sr=sample_rate, mono=True)
 # print(waveform.shape)
 # waveform = pad_audio(waveform, audio_target_length)
@@ -58,7 +54,13 @@ with torch.no_grad():
 logits = output['clipwise_logits']
 print("logits", logits.size())
 
-# send logits to CPU. 
-# feature_store[str(fid)] = torch.squeeze(logits).cpu()
-# print(fid, logits.size())
+probs = torch.sigmoid(logits)
+
+# send probs to CPU. 
+logits = torch.squeeze(probs).cpu()
+
+sample_labels = np.where(probs[0].clone().detach().cpu() > 0.00001)[0]
+print(audio_name + "\n\n")
+print(sample_labels)
+
 
