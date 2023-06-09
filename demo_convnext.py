@@ -23,8 +23,8 @@ def load_from_pretrain(model, pretrained_checkpoint_path):
     checkpoint = torch.load(pretrained_checkpoint_path)
     model.load_state_dict(checkpoint['model'])
 
-# tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth'
-tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
+tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth'
+# tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
 load_from_pretrain(model, tiny_path)
 
 if torch.cuda.is_available():
