@@ -23,6 +23,16 @@ from utilities import (create_folder, get_filename, create_logging, Mixup,
 
 from convnext import convnext_tiny, convnext_small, convnext_base, convnext_atto, convnext_femto, convnext_pico, convnext_nano
 
+from models import (Cnn14, Cnn14Next, Cnn14Deformable, Cnn14_no_specaug, Cnn14_no_dropout, Cnn14Sep, Cnn14SepPW,
+                    Cnn6, Cnn6Sobel, Cnn6SobelG, Cnn6SobelLearnable, Cnn6SobelG2, Cnn6Deformable, Cnn6Next, Cnn6NextNoStem, Cnn6NextDCLS, Cnn6NextNoLastPool, Cnn6Next11, Cnn6Next13, Cnn6Next11NoStem, Cnn6Next13NoStem,
+                    Cnn6NextConvPool, Cnn6NextConvPoolGroup1, convnext_cnn6,
+                    Cnn7Next,
+                    Cnn8NextNoStemNoFC1,
+                    convnext_cnn10, Cnn10, Cnn10Next, Cnn10Next11, Cnn10NextNoStem, Cnn10NextDropPath, ResNet22, ResNet38, ResNet54, Cnn14_emb512, Cnn14_emb128, 
+    Cnn14_emb32, MobileNetV1, MobileNetV2, LeeNet11, LeeNet24, DaiNet19, 
+    Res1dNet31, Res1dNet51, Wavegram_Cnn14, Wavegram_Logmel_Cnn14, 
+    Wavegram_Logmel128_Cnn14, Cnn14_16k, Cnn14_8k, Cnn14_mel32, Cnn14_mel128, 
+    Cnn14_mixup_time_domain, Cnn14_DecisionLevelMax, Cnn14_DecisionLevelAtt)
 from pytorch_utils import (move_data_to_device, count_parameters, count_flops, 
                            do_mixup, custom_weight_decay)
 
@@ -74,6 +84,7 @@ def train(args):
     fmin = args.fmin
     fmax = args.fmax
     model_type = args.model_type
+    use_sobel = args.use_sobel
     loss_type = args.loss_type
     balanced = args.balanced
     augmentation = args.augmentation
@@ -84,15 +95,18 @@ def train(args):
     device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
     seed = args.seed
     filename = args.filename
+    deformable_blocks = args.deformable_blocks
     drop_path_rate = args.drop_path_rate
     after_stem_dim = args.after_stem_dim
     use_speed_perturb=args.use_speed_perturb
     use_pydub_augment=args.use_pydub_augment
     use_roll_augment=args.use_roll_augment
-    use_torchaudio = args.use_torchaudio
-    
+
     in_22k=args.in_22k
     
+    dcls_kernel_size = args.dcls_kernel_size
+    dcls_kernel_count = args.dcls_kernel_count 
+
     num_workers = args.num_workers
     clip_samples = config.clip_samples
     classes_num = config.classes_num
@@ -115,6 +129,9 @@ def train(args):
     
     wandb.login(key='cfa500f72c83d0e45e69c8e1ad4a0d1e735bb5b2')
       
+    if "ConvNext6" in model_type or "ConvNext10" in model_type:
+        model_type += "_stem4422_drop20"
+
     if "Tiny" in model_type or "Small" in model_type or "Base" in model_type or "Nano" in model_type:
         model_type += "_pretrained_True_dp_%.1f_wd_%.2f_wdSched_%s_stemDim_%s"%(drop_path_rate, weight_decay, use_wd_scheduler, "_".join([str(el) for el in after_stem_dim]))
 
@@ -132,11 +149,27 @@ def train(args):
         else:
             model_type += "_gainFalse"
 
+    if use_sobel:
+        model_type += "_sobel"
+
     print("using Speed Perturbation:", use_speed_perturb)
     print("using pydub augment:", use_pydub_augment)
     print("using roll augment:", use_roll_augment)
+    print("using Sobel:", use_sobel)
 
-    wandb.config = {
+    if deformable_blocks is not None:
+        wandb.config = {
+            "model": model_type,
+            "per_device_bs": batch_size,
+            "grad_acc_steps": 1,
+            "steps": early_stop,
+            "warmup_steps": 0,
+            "lr": learning_rate,
+            "deformable_blocks": deformable_blocks,
+            "seed": seed,
+        }
+    else:
+        wandb.config = {
             "model": model_type,
             "per_device_bs": batch_size,
             "grad_acc_steps": 1,
@@ -145,7 +178,7 @@ def train(args):
             "lr": learning_rate,
             "deformable_blocks": 'none',
             "seed": seed,
-    }
+        }
 
         
     wandb_run_name="%s_8GPU_seed%d_bs%d_gradacc%d_lr%.6f_maxStep%d"%(model_type, \
@@ -154,6 +187,12 @@ def train(args):
                                                                      1, \
                                                                      learning_rate, \
                                                                      early_stop)
+
+    if deformable_blocks is not None:
+        wandb_run_name += "_deformable_" + "_".join([str(el) for el in deformable_blocks])
+
+    if dcls_kernel_size is not None:
+        wandb_run_name += "_ks_" + str(dcls_kernel_size) + "_kc_" + str(dcls_kernel_count)
 
     if black_list_csv is not None:
         wandb_run_name += "_blacklist"
@@ -190,12 +229,29 @@ def train(args):
     eval_test_indexes_hdf5_path = os.path.join(dataspace, 'hdf5s', 'indexes', 
         'eval.h5')
 
-    checkpoints_dir = os.path.join(workspace, 'checkpoints', filename,
-                                   'sample_rate={},window_size={},hop_size={},mel_bins={},fmin={},fmax={}'.format(
-                                       sample_rate, window_size, hop_size, mel_bins, fmin, fmax), 
-                                   'data_type={}'.format(data_type), model_type, 'black_list_{}'.format(black_list_csv), 
-                                   'loss_type={}'.format(loss_type), 'balanced={}'.format(balanced), 
-                                   'augmentation={}'.format(augmentation), 'batch_size={}'.format(batch_size))
+    if deformable_blocks is not None:
+        checkpoints_dir = os.path.join(workspace, 'checkpoints', filename,
+                                       'sample_rate={},window_size={},hop_size={},mel_bins={},fmin={},fmax={}'.format(
+                                           sample_rate, window_size, hop_size, mel_bins, fmin, fmax), 
+                                       'data_type={}'.format(data_type), model_type, 'deformation_blocks={}'.format("_".join([str(el) for el in deformable_blocks])), 
+                                       'loss_type={}'.format(loss_type), 'balanced={}'.format(balanced), 
+                                       'augmentation={}'.format(augmentation), 'batch_size={}'.format(batch_size))
+    elif dcls_kernel_size is not None:
+        checkpoints_dir = os.path.join(workspace, 'checkpoints', filename,
+                                       'sample_rate={},window_size={},hop_size={},mel_bins={},fmin={},fmax={}'.format(
+                                           sample_rate, window_size, hop_size, mel_bins, fmin, fmax), 
+                                       'data_type={}'.format(data_type), model_type, 'dcls_kernel_size={}'.format(dcls_kernel_size), 'dcls_kernel_count={}'.format(dcls_kernel_count),
+                                       'loss_type={}'.format(loss_type), 'balanced={}'.format(balanced), 
+                                       'augmentation={}'.format(augmentation), 'batch_size={}'.format(batch_size))
+
+        
+    else:
+        checkpoints_dir = os.path.join(workspace, 'checkpoints', filename,
+                                       'sample_rate={},window_size={},hop_size={},mel_bins={},fmin={},fmax={}'.format(
+                                           sample_rate, window_size, hop_size, mel_bins, fmin, fmax), 
+                                       'data_type={}'.format(data_type), model_type, 'black_list_{}'.format(black_list_csv), 
+                                       'loss_type={}'.format(loss_type), 'balanced={}'.format(balanced), 
+                                       'augmentation={}'.format(augmentation), 'batch_size={}'.format(batch_size))
 
     if not os.path.exists(checkpoints_dir):
         create_folder(checkpoints_dir)
@@ -245,11 +301,16 @@ def train(args):
                       hop_size=hop_size, mel_bins=mel_bins, fmin=fmin, fmax=fmax, 
                       classes_num=classes_num, deformable=deformable_blocks)
     elif "ConvNextTiny" in model_type:
-        model = convnext_tiny(pretrained=True, strict=False, in_22k=in_22k, drop_path_rate=drop_path_rate, after_stem_dim=after_stem_dim,
-                              use_speed_perturb=False,
+        if use_sobel:
+            model = convnext_tiny(pretrained=True, strict=False, in_22k=in_22k, use_sobel=use_sobel, drop_path_rate=drop_path_rate, after_stem_dim=after_stem_dim,
+                              use_speed_perturb=use_speed_perturb,
                               use_pydub_augment=use_pydub_augment,
-                              use_roll_augment=use_roll_augment,
-                              use_torchaudio=use_torchaudio)
+                              use_roll_augment=use_roll_augment)
+        else:
+            model = convnext_tiny(pretrained=True, strict=False, in_22k=in_22k, drop_path_rate=drop_path_rate, after_stem_dim=after_stem_dim,
+                              use_speed_perturb=use_speed_perturb,
+                              use_pydub_augment=use_pydub_augment,
+                              use_roll_augment=use_roll_augment)
         print("Pretrained: True")
     elif "ConvNextSmall" in model_type:
         model = convnext_small(pretrained=True, strict=False, in_22k=in_22k, drop_path_rate=drop_path_rate, after_stem_dim=after_stem_dim,
@@ -275,6 +336,20 @@ def train(args):
                               use_speed_perturb=use_speed_perturb,
                               use_pydub_augment=use_pydub_augment,
                               use_roll_augment=use_roll_augment)
+    elif "ConvNext6" in model_type:
+        model = convnext_cnn6(drop_path_rate=drop_path_rate)
+    elif "ConvNext10" in model_type:
+        model = convnext_cnn10(drop_path_rate=drop_path_rate)
+    elif "Cnn6NextDCLS" in model_type:
+        Model = eval(model_type)
+        model = Model(sample_rate=sample_rate, window_size=window_size, 
+                      hop_size=hop_size, mel_bins=mel_bins, fmin=fmin, fmax=fmax, 
+                      dcls_kernel_size=dcls_kernel_size, classes_num=classes_num)
+    elif "SobelG" in model_type:
+        Model = eval(model_type)
+        model = Model(sample_rate=sample_rate, window_size=window_size, 
+                      hop_size=hop_size, mel_bins=mel_bins, fmin=fmin, fmax=fmax, 
+                      classes_num=classes_num, device=device)
     else:
         Model = eval(model_type)
         model = Model(sample_rate=sample_rate, window_size=window_size, 
@@ -293,8 +368,7 @@ def train(args):
     
     # Dataset will be used by DataLoader later. Dataset takes a meta as input 
     # and return a waveform and a target.
-    dataset = AudioSetDataset(sample_rate=sample_rate, training=True, use_torchaudio=use_torchaudio, use_speed_perturb=use_speed_perturb)
-    eval_dataset = AudioSetDataset(sample_rate=sample_rate, training=False, use_torchaudio=use_torchaudio, use_speed_perturb=False)
+    dataset = AudioSetDataset(sample_rate=sample_rate)
 
     # Train sampler
     if balanced == 'none':
@@ -319,14 +393,14 @@ def train(args):
 
     # Data loader
     train_loader = torch.utils.data.DataLoader(dataset=dataset, 
-                                               batch_sampler=train_sampler, collate_fn=collate_fn, 
+        batch_sampler=train_sampler, collate_fn=collate_fn, 
         num_workers=num_workers, pin_memory=True)
     
-    eval_bal_loader = torch.utils.data.DataLoader(dataset=eval_dataset, 
+    eval_bal_loader = torch.utils.data.DataLoader(dataset=dataset, 
         batch_sampler=eval_bal_sampler, collate_fn=collate_fn, 
         num_workers=num_workers, pin_memory=True)
 
-    eval_test_loader = torch.utils.data.DataLoader(dataset=eval_dataset, 
+    eval_test_loader = torch.utils.data.DataLoader(dataset=dataset, 
         batch_sampler=eval_test_sampler, collate_fn=collate_fn, 
         num_workers=num_workers, pin_memory=True)
 
@@ -334,7 +408,7 @@ def train(args):
         mixup_augmenter = Mixup(mixup_alpha=1.)
 
     # Evaluator
-    evaluator = Evaluator(model=model, use_torchaudio=use_torchaudio)
+    evaluator = Evaluator(model=model)
         
     # Statistics
     statistics_container = StatisticsContainer(statistics_path)
@@ -415,7 +489,7 @@ def train(args):
         
     time1 = time.time()
     
-    for batch_ind, batch_data_dict in enumerate(train_loader):
+    for batch_data_dict in train_loader:
         """batch_data_dict: {
             'audio_name': (batch_size [*2 if mixup],), 
             'waveform': (batch_size [*2 if mixup], clip_samples), 
@@ -425,12 +499,6 @@ def train(args):
         if do_log and idr_torch.rank == 0:
             run.log({"steps": iteration}, commit=False)
 
-        batch_data_dict['fbank'] = np.float32(np.array(batch_data_dict['fbank']))
-        batch_data_dict['target'] = np.float32(np.array(batch_data_dict['target']))
-        # if batch_ind < 1:
-        #     print(batch_data_dict['fbank'].dtype)
-        #     print(batch_data_dict['target'].dtype)
-        
         # check if GPUs receive different audios! OK
         # if idr_torch.rank == 0:
         #     print("idr_torch.rank: ", idr_torch.rank)
@@ -441,6 +509,7 @@ def train(args):
         #     print(batch_data_dict['audio_name'])
 
         # # Evaluate
+        # if (iteration % 10 == 0 and iteration > resume_iteration) or (iteration == 0):
         if (iteration % 5000 == 0 and iteration > resume_iteration) or iteration == early_stop :
             train_fin_time = time.time()
 
@@ -494,7 +563,19 @@ def train(args):
             if do_log and idr_torch.rank == 0:
                 run.log(val_logs)
 
-            # Save model
+        # Save model
+        # if iteration % 20 == 0 :
+        # if iteration % 5000 == 0 :
+            # bal_statistics = evaluator.evaluate(eval_bal_loader)
+            # test_statistics = evaluator.evaluate(eval_test_loader)
+
+            # bal_mAP = np.mean(bal_statistics['average_precision'])
+            # test_mAP = np.mean(test_statistics['average_precision'])
+            # bal_macro_AUC = np.mean(bal_statistics['auc'])
+            # test_macro_AUC = np.mean(test_statistics['auc'])
+            # bal_macro_dprime = np.mean(bal_statistics['d_prime'])
+            # test_macro_dprime = np.mean(test_statistics['d_prime'])
+
             if idr_torch.rank == 0:
                 checkpoint = {
                     "balanced_train_mAP": bal_mAP,
@@ -519,38 +600,28 @@ def train(args):
         # Mixup lambda
         if 'mixup' in augmentation:
             batch_data_dict['mixup_lambda'] = mixup_augmenter.get_lambda(
-                batch_size=len(batch_data_dict['target']))
+                batch_size=len(batch_data_dict['waveform']))
 
         # Move data to device
         for key in batch_data_dict.keys():
-            if key != 'audio_name':
-                batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
+            batch_data_dict[key] = move_data_to_device(batch_data_dict[key], device)
         
         # Forward
         model.train()
         optimizer.zero_grad()
 
         if 'mixup' in augmentation:
-            if use_torchaudio:
-                batch_output_dict = model(batch_data_dict['fbank'], 
-                                          batch_data_dict['mixup_lambda'])
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-            else:
-                batch_output_dict = model(batch_data_dict['waveform'], 
-                                          batch_data_dict['mixup_lambda'])
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-                
+            batch_output_dict = model(batch_data_dict['waveform'], 
+                batch_data_dict['mixup_lambda'])
+            """{'clipwise_output': (batch_size, classes_num), ...}"""
+
             batch_target_dict = {'target': do_mixup(batch_data_dict['target'], 
                 batch_data_dict['mixup_lambda'])}
             """{'target': (batch_size, classes_num)}"""
         else:
-            if use_torchaudio:
-                batch_output_dict = model(batch_data_dict['fbank'], None)
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-            else:
-                batch_output_dict = model(batch_data_dict['waveform'], None)
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-                
+            batch_output_dict = model(batch_data_dict['waveform'], None)
+            """{'clipwise_output': (batch_size, classes_num), ...}"""
+
             batch_target_dict = {'target': batch_data_dict['target']}
             """{'target': (batch_size, classes_num)}"""
 
@@ -628,7 +699,8 @@ if __name__ == '__main__':
     parser_train.add_argument('--use_speed_perturb', action='store_true', default=False)
     parser_train.add_argument('--use_pydub_augment', action='store_true', default=False)
     parser_train.add_argument('--use_roll_augment', action='store_true', default=False)
-    parser_train.add_argument('--use_torchaudio', action='store_true', default=False)
+
+    parser_train.add_argument('--use_sobel', action='store_true', default=False)
     
     parser_train.add_argument('--in_22k', action='store_true', default=False)
     parser_train.add_argument('--use_wd_scheduler', action='store_true', default=False)
@@ -642,6 +714,10 @@ if __name__ == '__main__':
     parser_train.add_argument('--cuda', action='store_true', default=False)
     parser_train.add_argument('--seed', type=int, default=1978)
 
+    parser_train.add_argument( "--deformable_blocks",  nargs="*",  type=int, default=None)
+    parser_train.add_argument( "--dcls_kernel_size",  type=int, default=None)
+    parser_train.add_argument( "--dcls_kernel_count",  type=int, default=None)
+    
     parser_train.add_argument( "--black_list_csv", type=str, default=None)
 
     parser_train.add_argument('--weight_decay', type=float, default=0.0,
