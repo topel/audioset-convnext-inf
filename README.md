@@ -51,6 +51,14 @@ When the ground-truth is for this recording, as given in `audio_samples/f62-S-v2
 
 `[  0 137 151] Speech; Music; Ukulele; `
 
+## Evaluate a checkpoint on the balanced and the test subsets of AudioSet
+
+You can retrieve the results afore-mentioned with this script: `evaluate_convnext_on_audioset.py`
+
+The sbatch script is provided: `scripts/5_evaluate_convnext_on_audioset.sbatch`
+
+It loads the checkpoint and run it on a single GPU. It should take a few minutes to run and get the metric results in the log file. 
+
 ## Citation
 
 If you find this work useful, please consider citing our paper, to be presented at INTERSPEECH 2023:
