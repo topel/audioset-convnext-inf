@@ -1,11 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os.path as osp
+
 import librosa
 import numpy as np
 import torch
 
 from audioset_convnext_inf.pytorch.convnext import convnext_tiny
+
+CONVNEXT_CKPT_URL = (
+    "https://zenodo.org/record/8020843/files/convnext_tiny_471mAP.pth?download=1"
+)
+CONVNEXT_CKPT_FILENAME = "convnext_tiny_471mAP.pth"
+AUDIO_FNAME = "f62-S-v2swA_200000_210000.wav"
+AUDIO_FPATH = osp.join("audio_samples", AUDIO_FNAME)
 
 
 model = convnext_tiny(
@@ -27,7 +36,11 @@ def load_from_pretrain(model, pretrained_checkpoint_path):
     model.load_state_dict(checkpoint["model"])
 
 
-tiny_path = "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
+tiny_path = osp.join(torch.hub.get_dir(), CONVNEXT_CKPT_FILENAME)
+if not osp.isfile(tiny_path):
+    torch.hub.download_url_to_file(CONVNEXT_CKPT_URL, tiny_path)
+
+# tiny_path = "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
 # tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
 load_from_pretrain(model, tiny_path)
 
@@ -42,12 +55,7 @@ if "cuda" in str(device):
 sample_rate = 32000
 audio_target_length = 10 * sample_rate  # 10 s
 
-audio_name = "f62-S-v2swA_200000_210000.wav"
-fpath = (
-    "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/audio_samples/"
-    + audio_name
-)
-(waveform, _) = librosa.core.load(fpath, sr=sample_rate, mono=True)
+(waveform, _) = librosa.core.load(AUDIO_FPATH, sr=sample_rate, mono=True)
 # print(waveform.shape)
 # waveform = pad_audio(waveform, audio_target_length)
 # print(waveform.shape)
@@ -70,6 +78,6 @@ print(probs)
 
 threshold = 0.25
 sample_labels = np.where(probs[0].clone().detach().cpu() > threshold)[0]
-print("\n\n" + audio_name + "\n\n")
+print("\n\n" + AUDIO_FNAME + "\n\n")
 print("predictions:\n\n")
 print(sample_labels)
