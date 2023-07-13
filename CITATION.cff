@@ -31,3 +31,4 @@ preferred-citation:
   title: "Adapting a ConvNeXt model to audio classification on AudioSet"
   url: "https://doi.org/10.48550/arXiv.2306.00830"
   year: 2023
+  type: proceedings
