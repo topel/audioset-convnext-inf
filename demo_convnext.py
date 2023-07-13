@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
 import os.path as osp
 
 import librosa
@@ -36,13 +37,16 @@ def load_from_pretrain(model, pretrained_checkpoint_path):
     model.load_state_dict(checkpoint["model"])
 
 
-tiny_path = osp.join(torch.hub.get_dir(), CONVNEXT_CKPT_FILENAME)
-if not osp.isfile(tiny_path):
-    torch.hub.download_url_to_file(CONVNEXT_CKPT_URL, tiny_path)
+ckpt_dpath = osp.join(torch.hub.get_dir(), "checkpoints")
+model_fpath = osp.join(ckpt_dpath, CONVNEXT_CKPT_FILENAME)
+
+os.makedirs(ckpt_dpath, exist_ok=True)
+if not osp.isfile(model_fpath):
+    torch.hub.download_url_to_file(CONVNEXT_CKPT_URL, model_fpath)
 
 # tiny_path = "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
 # tiny_path = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
-load_from_pretrain(model, tiny_path)
+load_from_pretrain(model, model_fpath)
 
 if torch.cuda.is_available():
     device = torch.device("cuda")
