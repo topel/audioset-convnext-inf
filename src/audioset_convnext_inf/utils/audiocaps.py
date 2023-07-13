@@ -144,7 +144,7 @@ class AudioCaps(Dataset[Dict[str, Any]]):
         self.__exclude_removed_audio = exclude_removed_audio
         self.__with_tags = with_tags
         self.__use_one_hot_tags = use_one_hot_tags
-        
+
         # Data to load
         self.__all_items: Dict[str, List[Any]] = {}
         self.__loaded = False
