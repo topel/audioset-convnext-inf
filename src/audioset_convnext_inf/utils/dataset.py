@@ -23,8 +23,7 @@ from audioset_convnext_inf.utils.utilities import (
     pad_or_truncate,
     read_metadata,
 )
-
-import config
+from audioset_convnext_inf.utils import config
 
 
 def split_unbalanced_csv_to_partial_csvs(args):

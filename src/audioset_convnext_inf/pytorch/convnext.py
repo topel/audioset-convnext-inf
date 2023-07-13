@@ -5,9 +5,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from torch import Tensor
 from torchlibrosa.stft import Spectrogram, LogmelFilterBank
 from torchlibrosa.augmentation import SpecAugmentation
 
+from audioset_convnext_inf.pytorch.augmentations import (
+    SpeedPerturbation,
+    pydub_augment,
+    roll_augment,
+)
 from audioset_convnext_inf.pytorch.pytorch_utils import do_mixup
 from audioset_convnext_inf.pytorch.timm_weight_init import trunc_normal_
 
@@ -15,12 +21,6 @@ from audioset_convnext_inf.pytorch.timm_weight_init import trunc_normal_
 #     from DCLS.construct.modules.Dcls import  Dcls2d as cDcls2d
 # except:
 #     from DCLS.construct.modules import  Dcls2d as cDcls2d
-
-from audioset_convnext_inf.pytorch.augmentations import (
-    SpeedPerturbation,
-    pydub_augment,
-    roll_augment,
-)
 
 #### ConvNext #####
 # remark: DropPath is only usable if channels_in == channels_out
@@ -75,8 +75,11 @@ class Block(nn.Module):
 
 
 def drop_path(
-    x, drop_prob: float = 0.0, training: bool = False, scale_by_keep: bool = True
-):
+    x: Tensor,
+    drop_prob: float = 0.0,
+    training: bool = False,
+    scale_by_keep: bool = True,
+) -> Tensor:
     """Drop paths (Stochastic Depth) per sample (when applied in main path of residual blocks).
     This is the same as the DropConnect impl I created for EfficientNet, etc networks, however,
     the original name is misleading as 'Drop Connect' is a different form of dropout in a separate paper...

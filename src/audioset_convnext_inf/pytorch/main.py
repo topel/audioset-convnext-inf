@@ -90,6 +90,8 @@ from audioset_convnext_inf.pytorch.models import (
     Cnn14_DecisionLevelMax,
     Cnn14_DecisionLevelAtt,
 )
+from audioset_convnext_inf.pytorch.evaluate import Evaluator
+from audioset_convnext_inf.pytorch.losses import get_loss_func
 from audioset_convnext_inf.pytorch.pytorch_utils import (
     move_data_to_device,
     count_parameters,
@@ -106,9 +108,7 @@ from audioset_convnext_inf.utils.data_generator import (
     EvaluateSampler,
     collate_fn,
 )
-from audioset_convnext_inf.pytorch.evaluate import Evaluator
-import config
-from audioset_convnext_inf.pytorch.losses import get_loss_func
+from audioset_convnext_inf.utils import config
 
 import idr_torch
 import wandb
