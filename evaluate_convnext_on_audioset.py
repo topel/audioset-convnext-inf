@@ -8,6 +8,8 @@ import argparse
 import numpy as np
 import torch
 
+from torch.utils.data.dataloader import DataLoader
+
 from audioset_convnext_inf.pytorch.evaluate import Evaluator
 from audioset_convnext_inf.pytorch.convnext import convnext_tiny
 from audioset_convnext_inf.utils.data_generator import (
@@ -66,7 +68,7 @@ def evaluate(args):
     # Data loader
     dataset = AudioSetDataset(sample_rate=sample_rate)
 
-    eval_bal_loader = torch.utils.data.DataLoader(
+    eval_bal_loader = DataLoader(
         dataset=dataset,
         batch_sampler=eval_bal_sampler,
         collate_fn=collate_fn,
@@ -74,7 +76,7 @@ def evaluate(args):
         pin_memory=True,
     )
 
-    eval_test_loader = torch.utils.data.DataLoader(
+    eval_test_loader = DataLoader(
         dataset=dataset,
         batch_sampler=eval_test_sampler,
         collate_fn=collate_fn,
