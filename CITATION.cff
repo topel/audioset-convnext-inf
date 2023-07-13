@@ -1,0 +1,33 @@
+# -*- coding: utf-8 -*-
+
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: audioset-convnext-inf
+authors:
+  - given-names: Thomas
+    family-names: Pellegrini
+    affiliation: IRIT
+url: https://github.com/topel/audioset-convnext-inf
+
+preferred-citation:
+  authors:
+    - family-names: Pellegrini
+      given-names: Thomas
+      affiliation: ANITI, IRIT, UPS
+      orcid: 'https://orcid.org/0000-0001-8984-1399'
+    - family-names: Ismail
+      given-names: Khalfaoui-Hassani
+      affiliation: ANITI, UPS
+    - family-names: Labbé
+      given-names: Etienne
+      affiliation: IRIT, UPS
+      orcid: 'https://orcid.org/0000-0002-7219-5463'
+    - family-names: Timothée
+      given-names: Masquelier
+      affiliation: CerCo
+  # arxiv citation
+  doi: "10.48550/arXiv.2306.00830"
+  month: 6
+  title: "Adapting a ConvNeXt model to audio classification on AudioSet"
+  url: "https://doi.org/10.48550/arXiv.2306.00830"
+  year: 2023
