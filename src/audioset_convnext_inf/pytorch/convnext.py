@@ -253,12 +253,15 @@ class ConvNeXt(nn.Module):
             trunc_normal_(m.weight, std=0.02)
             nn.init.constant_(m.bias, 0)
 
-    def forward_features(self, x):
+    def forward_features(self, x, return_frame_embeddings=False):
         for i in range(4):
             # print(x.size())
             x = self.downsample_layers[i](x)
             # print(x.size())
             x = self.stages[i](x)
+
+        if return_frame_embeddings:
+            return x
 
         x = torch.mean(x, dim=3)
         (x1, _) = torch.max(x, dim=2)
@@ -313,6 +316,77 @@ class ConvNeXt(nn.Module):
         output_dict = {"clipwise_output": clipwise_output, "clipwise_logits": logits}
 
         return output_dict
+
+    def forward_scene_embeddings(self, x, mixup_lambda=None):
+
+        if self.training and self.use_pydub_augment:
+            x = pydub_augment(x)
+
+        if self.training and self.use_roll_augment:
+            x = roll_augment(x)
+
+        if self.training and self.use_speed_perturb:
+            x = self.speed_perturb(x)
+
+        if not self.use_torchaudio:
+            x = self.spectrogram_extractor(x)  # (batch_size, 1, time_steps, freq_bins)
+            x = self.logmel_extractor(x)  # (batch_size, 1, time_steps, mel_bins)
+
+        # print("x.size()", x.size())
+        # with torchaudio: torch.Size([128, 1, 994, 224])
+
+        x = x.transpose(1, 3)
+        x = self.bn0(x)
+        x = x.transpose(1, 3)
+
+        if self.training:
+            x = self.spec_augmenter(x)
+
+        # Mixup on spectrogram
+        if self.training and mixup_lambda is not None:
+            x = do_mixup(x, mixup_lambda)
+        # print(x.size())
+
+        x = self.forward_features(x)
+        # print("after forward_features", x.size())
+
+        return x
+
+
+    def forward_frame_embeddings(self, x, mixup_lambda=None):
+
+        if self.training and self.use_pydub_augment:
+            x = pydub_augment(x)
+
+        if self.training and self.use_roll_augment:
+            x = roll_augment(x)
+
+        if self.training and self.use_speed_perturb:
+            x = self.speed_perturb(x)
+
+        if not self.use_torchaudio:
+            x = self.spectrogram_extractor(x)  # (batch_size, 1, time_steps, freq_bins)
+            x = self.logmel_extractor(x)  # (batch_size, 1, time_steps, mel_bins)
+
+        # print("x.size()", x.size())
+        # with torchaudio: torch.Size([128, 1, 994, 224])
+
+        x = x.transpose(1, 3)
+        x = self.bn0(x)
+        x = x.transpose(1, 3)
+
+        if self.training:
+            x = self.spec_augmenter(x)
+
+        # Mixup on spectrogram
+        if self.training and mixup_lambda is not None:
+            x = do_mixup(x, mixup_lambda)
+        # print(x.size())
+
+        x = self.forward_features(x, return_frame_embeddings=True)
+        # print("after forward_features", x.size())
+
+        return x
 
 
 class LayerNorm(nn.Module):
