@@ -11,8 +11,8 @@ In this repo, we provide the PyTorch code to do inference with our best checkpoi
 The most important modules are:
 
 - pytorch 1.11.0 but more recent 1.* versions should work (maybe 2.* also),
-- torchaudio 0.9,
-- torchlibrosa, needed to generate log mel spectrograms just as in PANN.
+- torchaudio,
+- torchlibrosa, needed to generate log mel spectrograms just as in PANN's code.
 
 Activate the newly created env:
 ```conda activate audio_retrieval```
