@@ -1,0 +1,15 @@
+Thu Sep 21 15:55:29 CEST 2023
+Loaded ckpt from: /gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth
+# params: 28222767
+
+Inference on:f62-S-v2swA_200000_210000.wav
+
+logits size: torch.Size([1, 527])
+probs size: torch.Size([1, 527])
+Predicted labels using activity threshold 0.25:
+
+[  0 137 138 139 151 506]
+
+Scene embedding, shape: torch.Size([1, 768])
+
+Frame-level embeddings, shape: torch.Size([1, 768, 31, 7])

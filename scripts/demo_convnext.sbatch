@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=Embed
+#SBATCH --job-name=Demo
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
 #SBATCH -C v100-32g
@@ -14,7 +14,8 @@
 ####SBATCH --account=vby@v100
 #SBATCH --hint=nomultithread
 
-PYTHON=/gpfswork/rech/mjp/uzj43um/conda-envs/audio_retrieval/bin/python
+#PYTHON=/gpfswork/rech/mjp/uzj43um/conda-envs/audio_retrieval/bin/python
+PYTHON=/gpfsstore/rech/djl/uzj43um/conda-envs/test_audio_convnext_inf/bin/python
 
 # module purge
 # module load pytorch-gpu/py3/1.11.0
@@ -24,7 +25,7 @@ set -x
 
 date
 
-BASEDIR=/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf
+BASEDIR=/gpfswork/rech/djl/uzj43um/audioset-convnext-inf
 SCRIPT=$BASEDIR/demo_convnext.py
 
 srun $PYTHON -u $SCRIPT

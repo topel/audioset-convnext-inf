@@ -223,7 +223,7 @@ class Resample(nn.Module):
         """
         if interpolation not in self.INTERPOLATIONS:
             raise ValueError(
-                f'Invalid argument mode interpolation={interpolation}. Must be one of {self.INTERPOLATIONS}.'
+                f"Invalid argument mode interpolation={interpolation}. Must be one of {self.INTERPOLATIONS}."
             )
 
         super().__init__()
@@ -252,7 +252,9 @@ class Resample(nn.Module):
             data = self.resample_nearest(data, rate)
         elif self.interpolation == "linear":
             sampling_rate = 32000
-            tchaudio_resample = TorchAudioResample(sampling_rate, int(sampling_rate * rate))
+            tchaudio_resample = TorchAudioResample(
+                sampling_rate, int(sampling_rate * rate)
+            )
             data = tchaudio_resample(data)
         else:
             raise ValueError(
@@ -343,7 +345,8 @@ def roll_augment(x, shift=None, shift_range=50, dims=-1):
     if shift is None:
         # sf = int(np.random.random_integers(-shift_range, shift_range))
         sf = torch.randint(-shift_range, shift_range, (1,)).item()
-    else: sf = shift
+    else:
+        sf = shift
 
     return x.roll(sf, dims)
 
