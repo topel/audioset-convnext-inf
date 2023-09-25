@@ -9,51 +9,30 @@ import numpy as np
 import torch
 import torchaudio
 
-from audioset_convnext_inf.pytorch.convnext import convnext_tiny
+from audioset_convnext_inf.pytorch.convnext import convnext_tiny, ConvNeXt
 
-# set this to True if you need to download the checkpoint, and if your
-# machine has access to the Web. Otherwise, download the ckpt
-# manually, and modify model_fpath accordingly:
-download_ckpt=False
+# three options: 1) the ckpt is already on disk, 2) use Zenodo, 3) use the HF hub model
 
-model_fpath = "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
-# model_fpath = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
+# Model from local disk
+# model_fpath = "/gpfswork/rech/djl/uzj43um/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
+# model_fpath = '/gpfswork/rech/djl/uzj43um/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
 
-CONVNEXT_CKPT_URL = (
-    "https://zenodo.org/record/8020843/files/convnext_tiny_471mAP.pth?download=1"
-)
-CONVNEXT_CKPT_FILENAME = "convnext_tiny_471mAP.pth"
+# Model from Zenodo
+# model_fpath = "https://zenodo.org/record/8020843/files/convnext_tiny_471mAP.pth?download=1"
+
+# Model from HF model.safetensors
+model_fpath="topel/ConvNeXt-Tiny-AT"
+
 AUDIO_FNAME = "f62-S-v2swA_200000_210000.wav"
 AUDIO_FPATH = osp.join("/gpfswork/rech/djl/uzj43um/audioset-convnext-inf", "audio_samples", AUDIO_FNAME)
 
+model = ConvNeXt.from_pretrained(model_fpath, use_auth_token=None, map_location='cpu')
 
-model = convnext_tiny(
-    pretrained=False,
-    strict=False,
-    drop_path_rate=0.0,
-    after_stem_dim=[252, 56],
-    use_speed_perturb=False,
-)
-
-def load_from_pretrain(model, pretrained_checkpoint_path):
-    checkpoint = torch.load(pretrained_checkpoint_path)
-    model.load_state_dict(checkpoint["model"])
-
-
-if download_ckpt and not osp.isfile(model_fpath):
-    ckpt_dpath = osp.join(torch.hub.get_dir(), "checkpoints")
-    os.makedirs(ckpt_dpath, exist_ok=True)
-    model_fpath = osp.join(ckpt_dpath, CONVNEXT_CKPT_FILENAME)
-    torch.hub.download_url_to_file(CONVNEXT_CKPT_URL, model_fpath)
-
-load_from_pretrain(model, model_fpath)
-print("Loaded ckpt from:", model_fpath)
 
 print(
     "# params:",
     sum(param.numel() for param in model.parameters() if param.requires_grad),
 )
-
 if torch.cuda.is_available():
     device = torch.device("cuda")
 else:
@@ -64,13 +43,6 @@ if "cuda" in str(device):
 
 sample_rate = 32000
 audio_target_length = 10 * sample_rate  # 10 s
-
-# (waveform, _) = librosa.core.load(AUDIO_FPATH, sr=sample_rate, mono=True)
-# # print(waveform.shape)
-# # waveform = pad_audio(waveform, audio_target_length)
-# # print(waveform.shape)
-# waveform = waveform[None, :]  # (1, audio_length)
-# waveform = torch.as_tensor(waveform).to(device)
 
 print("\nInference on " + AUDIO_FNAME + "\n")
 

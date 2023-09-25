@@ -26,6 +26,6 @@ set -x
 date
 
 BASEDIR=/gpfswork/rech/djl/uzj43um/audioset-convnext-inf
-SCRIPT=$BASEDIR/demo_convnext.py
+SCRIPT=$BASEDIR/demo_convnext_v2.py
 
 srun $PYTHON -u $SCRIPT
