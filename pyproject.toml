@@ -22,15 +22,17 @@ maintainers = [
 version = "0.1.0"
 
 dependencies = [
-    "tqdm==4.64.1",
-    "numpy==1.20.1",
-    "torch==1.11.0",
-    "torchaudio==0.11.0",
-    "scikit-learn==0.24.2",
-    "torchlibrosa==0.0.9",
-    "scipy==1.6.3",
-    "h5py==3.2.1",
-    "matplotlib==3.4.2",
+    "tqdm>=4.64.1",
+    "numpy>=1.20.1",
+    "torch>=1.11.0",
+    "torchaudio>=0.11.0",
+    "scikit-learn>=0.24.2",
+    "torchlibrosa>=0.0.9",
+    "scipy>=1.6.3",
+    "h5py>=3.2.1",
+    "matplotlib>=3.4.2",
+    "huggingface_hub>=0.17.2",
+    "safetensors>=0.3.3",
 ]
 
 [project.urls]

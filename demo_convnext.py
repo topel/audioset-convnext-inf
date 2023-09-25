@@ -16,8 +16,8 @@ from audioset_convnext_inf.pytorch.convnext import convnext_tiny
 # manually, and modify model_fpath accordingly:
 download_ckpt=False
 
-model_fpath = "/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
-# model_fpath = '/gpfswork/rech/djl/uzj43um/audio_retrieval/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
+model_fpath = "/gpfswork/rech/djl/uzj43um/audioset-convnext-inf/checkpoints/convnext_tiny_471mAP.pth"
+# model_fpath = '/gpfswork/rech/djl/uzj43um/audioset-convnext-inf/checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth'
 
 CONVNEXT_CKPT_URL = (
     "https://zenodo.org/record/8020843/files/convnext_tiny_471mAP.pth?download=1"

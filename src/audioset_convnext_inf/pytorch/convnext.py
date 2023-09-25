@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +11,13 @@ from torch import Tensor
 from torchlibrosa.stft import Spectrogram, LogmelFilterBank
 from torchlibrosa.augmentation import SpecAugmentation
 
+from huggingface_hub import hf_hub_download
+from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
+from huggingface_hub.file_download import repo_folder_name
+
+from huggingface_hub.utils import RepositoryNotFoundError
+from safetensors.torch import load_model as st_load_model # , save_model
+
 from audioset_convnext_inf.pytorch.augmentations import (
     SpeedPerturbation,
     pydub_augment,
@@ -16,6 +25,10 @@ from audioset_convnext_inf.pytorch.augmentations import (
 )
 from audioset_convnext_inf.pytorch.pytorch_utils import do_mixup
 from audioset_convnext_inf.pytorch.timm_weight_init import trunc_normal_
+
+HF_PYTORCH_WEIGHTS_NAME = "model.safetensors"
+# HF_PYTORCH_WEIGHTS_NAME = "convnext_tiny_471mAP.pth"
+# HF_LIGHTNING_CONFIG_NAME = "config.yaml"
 
 # try:
 #     from DCLS.construct.modules.Dcls import  Dcls2d as cDcls2d
@@ -388,7 +401,116 @@ class ConvNeXt(nn.Module):
 
         return x
 
+    @classmethod
+    def from_pretrained(
+            cls,
+            pretrained_checkpoint_path,
+            map_location=None,
+            use_auth_token=None
+    ):
 
+        if os.path.isfile(pretrained_checkpoint_path):
+            print("Ckpt already on local disk")
+            path_ = pretrained_checkpoint_path
+        elif "https" in pretrained_checkpoint_path:
+            # must be a Zenodo URL
+            print("Downloading ckpt from Zenodo")
+            dpath_ = os.path.join(torch.hub.get_dir(), "checkpoints")
+            os.makedirs(dpath_, exist_ok=True)
+            CONVNEXT_CKPT_FILENAME = os.path.basename(pretrained_checkpoint_path)
+            CONVNEXT_CKPT_FILENAME = CONVNEXT_CKPT_FILENAME.replace("?download=1", "")
+
+            path_ = os.path.join(dpath_, CONVNEXT_CKPT_FILENAME)
+            torch.hub.download_url_to_file(pretrained_checkpoint_path, path_)
+
+        else:
+            # Finally, let's try to find it on Hugging Face model hub
+            # e.g. julien-c/voice-activity-detection is a valid model id
+            # and  julien-c/voice-activity-detection@main supports specifying a commit/branch/tag.
+            print("Downloading ckpt from HF")
+            if "@" in pretrained_checkpoint_path:
+                model_id = pretrained_checkpoint_path.split("@")[0]
+                revision = pretrained_checkpoint_path.split("@")[1]
+            else:
+                model_id = pretrained_checkpoint_path
+                revision = None
+
+            try:
+                path_ = hf_hub_download(
+                    model_id,
+                    HF_PYTORCH_WEIGHTS_NAME,
+                    repo_type="model",
+                    revision=revision,
+                    library_name="audioset-convnext",
+                    # cache_dir=cache_dir,
+                    # force_download=False,
+                    # proxies=None,
+                    # etag_timeout=10,
+                    # resume_download=False,
+                    use_auth_token=use_auth_token,
+                    # local_files_only=False,
+                    # legacy_cache_layout=False,
+                )
+            except RepositoryNotFoundError:
+                print(
+                    f"""
+Could not download '{model_id}' model.
+It might be because the model is private or gated so make
+sure to authenticate. Visit https://hf.co/settings/tokens to
+create your access token and retry with:
+
+   >>> Model.from_pretrained('{model_id}',
+   ...                       use_auth_token=YOUR_AUTH_TOKEN)
+
+If this still does not work, it might be because the model is gated:
+visit https://hf.co/{model_id} to accept the user conditions."""
+                )
+                return None
+
+            # # HACK Huggingface download counters rely on config.yaml
+            # # HACK Therefore we download config.yaml even though we
+            # # HACK do not use it. Fails silently in case model does not
+            # # HACK have a config.yaml file.
+            # try:
+            #     _ = hf_hub_download(
+            #         model_id,
+            #         HF_LIGHTNING_CONFIG_NAME,
+            #         repo_type="model",
+            #         revision=revision,
+            #         library_name="convnext-audio",
+            #         # library_version=__version__,
+            #         # cache_dir=cache_dir,
+            #         # force_download=False,
+            #         # proxies=None,
+            #         # etag_timeout=10,
+            #         # resume_download=False,
+            #         use_auth_token=use_auth_token,
+            #         # local_files_only=False,
+            #         # legacy_cache_layout=False,
+            #     )
+
+            # except Exception:
+            #     pass
+
+        if map_location is None:
+            map_location = 'cpu'
+
+        # instantiate model, load checkpoint and state dict
+        model = convnext_tiny(
+            pretrained=False,
+            strict=False,
+            drop_path_rate=0.0,
+            after_stem_dim=[252, 56],
+            use_speed_perturb=False,
+        )
+        
+        st_load_model(model, path_)
+        # checkpoint = torch.load(path_, map_location=map_location)
+        # model.load_state_dict(checkpoint["model"])
+
+        return model        
+        
+    
 class LayerNorm(nn.Module):
     r"""LayerNorm that supports two data formats: channels_last (default) or channels_first.
     The ordering of the dimensions in the inputs. channels_last corresponds to inputs with
