@@ -9,6 +9,8 @@ import numpy as np
 
 from scipy import stats
 
+import csv
+import json
 
 def create_folder(fd):
     if not os.path.exists(fd):
@@ -122,6 +124,32 @@ def read_metadata(csv_path, audio_dir, classes_num, id_to_ix):
     return meta_dict
 
 
+def read_audioset_ontology(id_to_ix):
+    with open('../metadata/audioset_ontology.json', 'r') as f:
+        data = json.load(f)
+
+    # Output: {'name': 'Bob', 'languages': ['English', 'French']}                                                                                             
+    sentences = []
+    for el in data:
+        print(el.keys())
+        id = el['id']
+        if id in id_to_ix:
+            name = el['name']
+            desc = el['description']
+            # if '(' in desc:                                                                                                                                 
+                # print(name, '---', desc)                                                                                                                    
+            # print(id_to_ix[id], name, '---', )                                                                                                              
+
+            # sent = name                                                                                                                                     
+            # sent = name + ', ' + desc.replace('(', '').replace(')', '').lower()                                                                             
+            # sent = desc.replace('(', '').replace(')', '').lower()                                                                                           
+            # sentences.append(sent)                                                                                                                          
+            sentences.append(desc)
+            # print(sent)                                                                                                                                     
+            # break                                                                                                                                           
+    return sentences
+
+
 def original_read_metadata(csv_path, classes_num, id_to_ix):
     """Read metadata of AudioSet from a csv file.
 
@@ -163,6 +191,30 @@ def original_read_metadata(csv_path, classes_num, id_to_ix):
 
     meta_dict = {"audio_name": np.array(audio_names), "target": targets}
     return meta_dict
+
+def read_audioset_label_tags(class_labels_indices_csv):
+    with open(class_labels_indices_csv, 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        lines = list(reader)
+
+    labels = []
+    ids = []    # Each label has a unique id such as "/m/068hy"                                                                                               
+    for i1 in range(1, len(lines)):
+        id = lines[i1][1]
+        label = lines[i1][2]
+        ids.append(id)
+        labels.append(label)
+
+    classes_num = len(labels)
+
+    lb_to_ix = {label : i for i, label in enumerate(labels)}
+    ix_to_lb = {i : label for i, label in enumerate(labels)}
+
+    id_to_ix = {id : i for i, id in enumerate(ids)}
+    ix_to_id = {i : id for i, id in enumerate(ids)}
+
+    return lb_to_ix, ix_to_lb, id_to_ix, ix_to_id
+
 
 
 def float32_to_int16(x):

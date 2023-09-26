@@ -9,7 +9,8 @@ import numpy as np
 import torch
 import torchaudio
 
-from audioset_convnext_inf.pytorch.convnext import convnext_tiny, ConvNeXt
+from audioset_convnext_inf.pytorch.convnext import ConvNeXt
+from audioset_convnext_inf.utils.utilities import read_audioset_label_tags
 
 # three options: 1) the ckpt is already on disk, 2) use Zenodo, 3) use the HF hub model
 
@@ -65,11 +66,15 @@ print("logits size:", logits.size())
 probs = output["clipwise_output"]
 print("probs size:", probs.size())
 
+current_dir=os.getcwd()
+lb_to_ix, ix_to_lb, id_to_ix, ix_to_id = read_audioset_label_tags(os.path.join(current_dir, "metadata/class_labels_indices.csv"))
 
 threshold = 0.25
 sample_labels = np.where(probs[0].clone().detach().cpu() > threshold)[0]
 print("Predicted labels using activity threshold 0.25:\n")
 print(sample_labels)
+for l in sample_labels:
+    print("%s: %.3f"%(ix_to_lb[l], probs[0,l]))
 
 # Get audio scene embeddings
 with torch.no_grad():
