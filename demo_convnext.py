@@ -28,7 +28,7 @@ model_fpath="topel/ConvNeXt-Tiny-AT"
 # AUDIO_FNAME = "f62-S-v2swA_200000_210000.wav"
 # AUDIO_FNAME = "456251__breviceps__acoustic-traffic-signal-for-blind-people-auckland-new-zealand.wav"
 AUDIO_FNAME = "254906__tpellegrini__cavaco1.wav"
-AUDIO_FPATH = osp.join("/gpfswork/rech/djl/uzj43um/audioset-convnext-inf", "audio_samples", AUDIO_FNAME)
+AUDIO_FPATH = os.path.join("/gpfswork/rech/djl/uzj43um/audioset-convnext-inf", "audio_samples", AUDIO_FNAME)
 
 model = ConvNeXt.from_pretrained(model_fpath, use_auth_token=None, map_location='cpu')
 
