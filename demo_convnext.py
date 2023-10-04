@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import os
-import os.path as osp
 
 # import librosa
 import numpy as np
 import torch
+from torch.nn import functional as TF
 import torchaudio
+import torchaudio.functional as TAF
 
 from audioset_convnext_inf.pytorch.convnext import ConvNeXt
 from audioset_convnext_inf.utils.utilities import read_audioset_label_tags
@@ -24,11 +25,12 @@ from audioset_convnext_inf.utils.utilities import read_audioset_label_tags
 # Model from HF model.safetensors
 model_fpath="topel/ConvNeXt-Tiny-AT"
 
-AUDIO_FNAME = "f62-S-v2swA_200000_210000.wav"
+# AUDIO_FNAME = "f62-S-v2swA_200000_210000.wav"
+# AUDIO_FNAME = "456251__breviceps__acoustic-traffic-signal-for-blind-people-auckland-new-zealand.wav"
+AUDIO_FNAME = "254906__tpellegrini__cavaco1.wav"
 AUDIO_FPATH = osp.join("/gpfswork/rech/djl/uzj43um/audioset-convnext-inf", "audio_samples", AUDIO_FNAME)
 
 model = ConvNeXt.from_pretrained(model_fpath, use_auth_token=None, map_location='cpu')
-
 
 print(
     "# params:",
@@ -49,9 +51,22 @@ print("\nInference on " + AUDIO_FNAME + "\n")
 
 waveform, sample_rate_ = torchaudio.load(AUDIO_FPATH)
 if sample_rate_ != sample_rate:
-    print("ERROR: sampling rate not 32k Hz", sample_rate_)
+    print("Resampling from %d to 32000 Hz"%sample_rate_)
+    waveform = TAF.resample(
+        waveform,
+        sample_rate_,
+        sample_rate,
+        )
 
+if waveform.shape[-1] < audio_target_length:
+    print("Padding waveform")
+    missing = max(audio_target_length - waveform.shape[-1], 0)
+    waveform = TF.pad(waveform, (0,missing), mode="constant", value=0.0)
+elif waveform.shape[-1] > audio_target_length: 
+    print("Cropping waveform")
+    waveform = waveform[:, :audio_target_length]
 
+waveform = waveform.contiguous()
 waveform = waveform.to(device)
 
 # Forward

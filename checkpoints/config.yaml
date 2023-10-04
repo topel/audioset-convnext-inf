@@ -1,0 +1,14 @@
+model:
+  name: model.safetensors
+  original_name: convnext_tiny_471mAP.pth
+  type: ConvNeXt-Tiny
+  nb_params: 28222767
+  mAP: 0.471
+  spectrograms:
+    time_dim: 1000
+    freq_dim: 224
+  stem:
+    time_dim: 252
+    freq_dim: 56
+  embedding_dim: 768
+
