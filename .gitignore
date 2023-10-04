@@ -1,4 +1,6 @@
-checkpoints/
+checkpoints/convnext_tiny_465mAP_BL_AC_70kit.pth
+checkpoints/convnext_tiny_471mAP.pth
+checkpoints/model.safetensors
 .vscode/
 *.egg-info/
 __pycache__/

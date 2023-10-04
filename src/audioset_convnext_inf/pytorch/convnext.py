@@ -12,8 +12,8 @@ from torchlibrosa.stft import Spectrogram, LogmelFilterBank
 from torchlibrosa.augmentation import SpecAugmentation
 
 from huggingface_hub import hf_hub_download
-from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
-from huggingface_hub.file_download import repo_folder_name
+# from huggingface_hub.constants import HUGGINGFACE_HUB_CACHE
+# from huggingface_hub.file_download import repo_folder_name
 
 from huggingface_hub.utils import RepositoryNotFoundError
 from safetensors.torch import load_model as st_load_model # , save_model
@@ -28,7 +28,7 @@ from audioset_convnext_inf.pytorch.timm_weight_init import trunc_normal_
 
 HF_PYTORCH_WEIGHTS_NAME = "model.safetensors"
 # HF_PYTORCH_WEIGHTS_NAME = "convnext_tiny_471mAP.pth"
-# HF_LIGHTNING_CONFIG_NAME = "config.yaml"
+HF_CONFIG_NAME = "config.yaml"
 
 # try:
 #     from DCLS.construct.modules.Dcls import  Dcls2d as cDcls2d
@@ -414,7 +414,7 @@ class ConvNeXt(nn.Module):
             path_ = pretrained_checkpoint_path
         elif "https" in pretrained_checkpoint_path:
             # must be a Zenodo URL
-            print("Downloading ckpt from Zenodo")
+            print("Using ckpt from Zenodo")
             dpath_ = os.path.join(torch.hub.get_dir(), "checkpoints")
             os.makedirs(dpath_, exist_ok=True)
             CONVNEXT_CKPT_FILENAME = os.path.basename(pretrained_checkpoint_path)
@@ -427,7 +427,7 @@ class ConvNeXt(nn.Module):
             # Finally, let's try to find it on Hugging Face model hub
             # e.g. julien-c/voice-activity-detection is a valid model id
             # and  julien-c/voice-activity-detection@main supports specifying a commit/branch/tag.
-            print("Downloading ckpt from HF")
+            print("Using ckpt from HF")
             if "@" in pretrained_checkpoint_path:
                 model_id = pretrained_checkpoint_path.split("@")[0]
                 revision = pretrained_checkpoint_path.split("@")[1]
@@ -467,30 +467,30 @@ visit https://hf.co/{model_id} to accept the user conditions."""
                 )
                 return None
 
-            # # HACK Huggingface download counters rely on config.yaml
-            # # HACK Therefore we download config.yaml even though we
-            # # HACK do not use it. Fails silently in case model does not
-            # # HACK have a config.yaml file.
-            # try:
-            #     _ = hf_hub_download(
-            #         model_id,
-            #         HF_LIGHTNING_CONFIG_NAME,
-            #         repo_type="model",
-            #         revision=revision,
-            #         library_name="convnext-audio",
-            #         # library_version=__version__,
-            #         # cache_dir=cache_dir,
-            #         # force_download=False,
-            #         # proxies=None,
-            #         # etag_timeout=10,
-            #         # resume_download=False,
-            #         use_auth_token=use_auth_token,
-            #         # local_files_only=False,
-            #         # legacy_cache_layout=False,
-            #     )
+            # HACK Huggingface download counters rely on config.yaml
+            # HACK Therefore we download config.yaml even though we
+            # HACK do not use it. Fails silently in case model does not
+            # HACK have a config.yaml file.
+            try:
+                _ = hf_hub_download(
+                    model_id,
+                    HF_CONFIG_NAME,
+                    repo_type="model",
+                    revision=revision,
+                    library_name="audioset-convnext",
+                    # library_version=__version__,
+                    # cache_dir=cache_dir,
+                    # force_download=False,
+                    # proxies=None,
+                    # etag_timeout=10,
+                    # resume_download=False,
+                    use_auth_token=use_auth_token,
+                    # local_files_only=False,
+                    # legacy_cache_layout=False,
+                )
 
-            # except Exception:
-            #     pass
+            except Exception:
+                pass
 
         if map_location is None:
             map_location = 'cpu'
